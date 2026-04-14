@@ -58,9 +58,11 @@ public class PlayerThread extends Thread {
 					if(player != null)
 						resetPlayer();
 					InputStream stream = SongLoader.getStream();
-					if(stream == null)
+					if(stream == null) {
+						Thread.sleep(50L);
 						continue;
-					
+					}
+
 					player = new AdvancedPlayer(stream);
 					queued = false;
 				}
@@ -75,7 +77,10 @@ public class PlayerThread extends Thread {
 
 				if(played && !queued)
 					next();
+				else Thread.sleep(50L);
 			}
+		} catch(InterruptedException e) {
+			Thread.currentThread().interrupt();
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
@@ -122,18 +127,23 @@ public class PlayerThread extends Thread {
 		
 		setRealGain();
 	}
-	
+
 	public void setRealGain() {
 		GameSettings settings = Minecraft.getMinecraft().gameSettings;
 		float musicGain = settings.getSoundLevel(SoundCategory.MUSIC) * settings.getSoundLevel(SoundCategory.MASTER);
-		float realGain = Math.max(MIN_GAIN, gain * (2F - musicGain)); 
+		float realGain = Math.max(MIN_GAIN, gain * (2F - musicGain));
 		this.realGain = realGain;
 		if(player != null) {
 			AudioDevice device = player.getAudioDevice();
-			if(device != null && device instanceof JavaSoundAudioDevice)
-				((JavaSoundAudioDevice) device).setGain(realGain);
+			if(device != null && device instanceof JavaSoundAudioDevice) {
+				try {
+					((JavaSoundAudioDevice) device).setGain(realGain);
+				} catch(Throwable t) {
+					// Never allow client audio control issues to crash the game.
+				}
+			}
 		}
-		
+
 		if(musicGain == 0)
 			play(null);
 	}
@@ -151,14 +161,12 @@ public class PlayerThread extends Thread {
 	public int getFramesPlayed() {
 		return player == null ? 0 : player.getFrames();
 	}
-	
+
 	public void forceKill() {
 		try {
+			kill = true;
 			resetPlayer();
 			interrupt();
-
-			finalize();
-			kill = true;
 		} catch(Throwable e) {
 			e.printStackTrace();
 		}

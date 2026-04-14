@@ -221,28 +221,54 @@ public class JavaSoundAudioDevice extends AudioDeviceBase
 	 * ~Vazkii
 	 * ====================================================================================
 	 */
-	
+
 	// From http://stackoverflow.com/a/2324408
 	public void setGain(float gain)
 	{
-	    if (source != null)
-	    {
-	        FloatControl volControl = (FloatControl) source.getControl(FloatControl.Type.MASTER_GAIN);
-	        float newGain = gain;
+		if (source == null)
+			return;
 
-	        volControl.setValue(newGain);
-	    }
+		try
+		{
+			if (source.isControlSupported(FloatControl.Type.MASTER_GAIN))
+			{
+				FloatControl volControl = (FloatControl) source.getControl(FloatControl.Type.MASTER_GAIN);
+				volControl.setValue(gain);
+			}
+		}
+		catch (IllegalArgumentException e)
+		{
+			// Some systems do not expose MASTER_GAIN.
+		}
+		catch (RuntimeException e)
+		{
+			// Never allow audio gain handling to crash the client.
+		}
 	}
-	
+
 	public float getGain()
 	{
-	    if (source != null)
-	    {
-	        FloatControl volControl = (FloatControl) source.getControl(FloatControl.Type.MASTER_GAIN);
-	        return volControl.getValue();
-	    }
-	    
-	    return 0F;
+		if (source == null)
+			return PlayerThread.realGain;
+
+		try
+		{
+			if (source.isControlSupported(FloatControl.Type.MASTER_GAIN))
+			{
+				FloatControl volControl = (FloatControl) source.getControl(FloatControl.Type.MASTER_GAIN);
+				return volControl.getValue();
+			}
+		}
+		catch (IllegalArgumentException e)
+		{
+			// Unsupported control on this mixer/device.
+		}
+		catch (RuntimeException e)
+		{
+			// Never allow audio gain handling to crash the client.
+		}
+
+		return PlayerThread.realGain;
 	}
 	
 }

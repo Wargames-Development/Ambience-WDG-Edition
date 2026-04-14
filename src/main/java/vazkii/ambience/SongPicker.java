@@ -2,6 +2,7 @@ package vazkii.ambience;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import net.minecraft.block.material.Material;
 import net.minecraft.client.Minecraft;
@@ -48,11 +49,12 @@ public final class SongPicker {
 	public static final String EVENT_DYING = "dying";
 	public static final String EVENT_PUMPKIN_HEAD = "pumpkinHead";
 	public static final String EVENT_GENERIC = "generic";
-	
-	public static final Map<String, String> eventMap = new HashMap();
+
+	public static final Map<String, String[]> eventMap = new HashMap();
 	public static final Map<BiomeGenBase, String> biomeMap = new HashMap();
 	public static final Map<BiomeDictionary.Type, String> primaryTagMap = new HashMap();
 	public static final Map<BiomeDictionary.Type, String> secondaryTagMap = new HashMap();
+	public static final Random rand = new Random();
 	
 	public static void reset() {
 		eventMap.clear();
@@ -218,11 +220,14 @@ public final class SongPicker {
         
         return getSongForEvent(EVENT_GENERIC);
 	}
-	
+
 	public static String getSongForEvent(String event) {
-		if(eventMap.containsKey(event))
-			return eventMap.get(event);
-		
+		if(eventMap.containsKey(event)) {
+			String[] songs = eventMap.get(event);
+			if(songs != null && songs.length > 0)
+				return songs[rand.nextInt(songs.length)];
+		}
+
 		return null;
 	}
 	

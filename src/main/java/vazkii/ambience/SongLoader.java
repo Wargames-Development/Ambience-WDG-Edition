@@ -31,8 +31,8 @@ public final class SongLoader {
 		Properties props = new Properties();
 		try {
 			props.load(new FileReader(config));
-			enabled = props.getProperty("enabled").equals("true");
-			
+			enabled = Boolean.parseBoolean(props.getProperty("enabled", "false"));
+
 			if(enabled) {
 				SongPicker.reset();
 				Set<Object> keys = props.keySet();
@@ -46,8 +46,15 @@ public final class SongLoader {
 					String keyType = tokens[0];
 					if(keyType.equals("event")) {
 						String event = tokens[1];
-						
-						SongPicker.eventMap.put(event, props.getProperty(s));
+						String value = props.getProperty(s);
+
+						if(value != null) {
+							String[] split = value.split(",");
+							for(int i = 0; i < split.length; i++)
+								split[i] = split[i].trim();
+
+							SongPicker.eventMap.put(event, split);
+						}
 					} else if(keyType.equals("biome")) {
 						String biomeName = joinTokensExceptFirst(tokens).replaceAll("\\+", " ");
 						BiomeGenBase biome = BiomeMapper.getBiome(biomeName);
@@ -70,10 +77,10 @@ public final class SongLoader {
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
-		
+
 		File musicDir = new File(f, "music");
 		if(!musicDir.exists())
-			musicDir.mkdir();
+			musicDir.mkdirs();
 			
 		mainDir = musicDir;
 	}
