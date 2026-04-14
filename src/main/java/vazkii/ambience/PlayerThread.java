@@ -68,7 +68,7 @@ public class PlayerThread extends Thread {
 				}
 
 				boolean played = false;
-				if(player != null && player.getAudioDevice() != null && realGain > MIN_GAIN) {
+				if(player != null && realGain > MIN_GAIN) {
 					setGain(fadeGains[0]);
 					player.play();
 					playing = true;
@@ -131,8 +131,18 @@ public class PlayerThread extends Thread {
 	public void setRealGain() {
 		GameSettings settings = Minecraft.getMinecraft().gameSettings;
 		float musicGain = settings.getSoundLevel(SoundCategory.MUSIC) * settings.getSoundLevel(SoundCategory.MASTER);
-		float realGain = Math.max(MIN_GAIN, gain * (2F - musicGain));
+		musicGain = Math.max(0F, Math.min(1F, musicGain));
+
+		float realGain;
+		if(musicGain <= 0F) {
+			realGain = MIN_GAIN;
+		} else {
+			float volumeDbOffset = 20F * (float) Math.log10(musicGain);
+			realGain = Math.max(MIN_GAIN, gain + volumeDbOffset);
+		}
+
 		this.realGain = realGain;
+
 		if(player != null) {
 			AudioDevice device = player.getAudioDevice();
 			if(device != null && device instanceof JavaSoundAudioDevice) {
@@ -143,9 +153,6 @@ public class PlayerThread extends Thread {
 				}
 			}
 		}
-
-		if(musicGain == 0)
-			play(null);
 	}
 	
 	public float getRelativeVolume() {
