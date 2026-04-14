@@ -1,4 +1,4 @@
-	package vazkii.ambience;
+package vazkii.ambience;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -11,11 +11,12 @@ import java.io.InputStream;
 import java.util.Properties;
 import java.util.Set;
 
+import net.minecraft.world.biome.BiomeGenBase;
+import net.minecraftforge.common.BiomeDictionary;
+
 import org.apache.logging.log4j.Level;
 
-import net.minecraft.world.biome.Biome;
-import net.minecraftforge.common.BiomeDictionary;
-import net.minecraftforge.fml.common.FMLLog;
+import cpw.mods.fml.common.FMLLog;
 
 public final class SongLoader {
 
@@ -43,16 +44,16 @@ public final class SongLoader {
 						continue;
 
 					String keyType = tokens[0];
-					if(keyType.equals("event")) {	
+					if(keyType.equals("event")) {
 						String event = tokens[1];
 						
-						SongPicker.eventMap.put(event, props.getProperty(s).split(","));
+						SongPicker.eventMap.put(event, props.getProperty(s));
 					} else if(keyType.equals("biome")) {
 						String biomeName = joinTokensExceptFirst(tokens).replaceAll("\\+", " ");
-						Biome biome = BiomeMapper.getBiome(biomeName);
+						BiomeGenBase biome = BiomeMapper.getBiome(biomeName);
 						
 						if(biome != null)
-							SongPicker.biomeMap.put(biome, props.getProperty(s).split(","));
+							SongPicker.biomeMap.put(biome, props.getProperty(s));
 					} else if(keyType.matches("primarytag|secondarytag")) {
 						boolean primary = keyType.equals("primarytag");
 						String tagName = tokens[1].toUpperCase();
@@ -60,8 +61,8 @@ public final class SongLoader {
 						
 						if(type != null) {
 							if(primary)
-								SongPicker.primaryTagMap.put(type, props.getProperty(s).split(","));
-							else SongPicker.secondaryTagMap.put(type, props.getProperty(s).split(","));
+								SongPicker.primaryTagMap.put(type, props.getProperty(s));
+							else SongPicker.secondaryTagMap.put(type, props.getProperty(s));
 						}
 					}
 				}
@@ -94,9 +95,6 @@ public final class SongLoader {
 			return null;
 		
 		File f = new File(mainDir, PlayerThread.currentSong + ".mp3");
-		if(f.getName().equals("null.mp3"))
-			return null;
-		
 		try {
 			return new FileInputStream(f);
 		} catch (FileNotFoundException e) {

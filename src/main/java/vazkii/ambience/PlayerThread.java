@@ -1,18 +1,26 @@
 package vazkii.ambience;
 
+import java.io.FileInputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.apache.logging.log4j.Level;
+
+import cpw.mods.fml.common.FMLLog;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.audio.SoundCategory;
 import net.minecraft.client.settings.GameSettings;
-import net.minecraft.util.SoundCategory;
-import vazkii.ambience.thirdparty.javazoom.jl.player.AudioDevice;
-import vazkii.ambience.thirdparty.javazoom.jl.player.JavaSoundAudioDevice;
-import vazkii.ambience.thirdparty.javazoom.jl.player.advanced.AdvancedPlayer;
+import javazoom.jl.player.AudioDevice;
+import javazoom.jl.player.JavaSoundAudioDevice;
+import javazoom.jl.player.advanced.AdvancedPlayer;
+import javazoom.jl.player.advanced.PlaybackEvent;
+import javazoom.jl.player.advanced.PlaybackListener;
 
 public class PlayerThread extends Thread {
 
-	public static final float MIN_GAIN = -50F;
-	public static final float MAX_GAIN = 0F;
+	public static final float MIN_GAIN = -80F;
+	public static final float MAX_GAIN = -10F;
 
 	public static float[] fadeGains;
 	
@@ -28,7 +36,6 @@ public class PlayerThread extends Thread {
 	public volatile static float realGain = 0;
 
 	public volatile static String currentSong = null;
-	public volatile static String currentSongChoices = null;
 	
 	AdvancedPlayer player;
 
@@ -75,19 +82,7 @@ public class PlayerThread extends Thread {
 	}
 
 	public void next() {
-		if (!currentSongChoices.contains(","))
-			play(currentSong);
-		else {
-			if (SongPicker.getSongsString().equals(currentSongChoices)) {
-				String newSong;
-				do {
-					newSong = SongPicker.getRandomSong();
-				} while (newSong.equals(currentSong));
-				play(newSong);
-			} else {
-				play(null);
-			}
-		}
+		play(currentSong);
 	}
 	
 	public void resetPlayer() {
@@ -95,7 +90,6 @@ public class PlayerThread extends Thread {
 		if(player != null)
 			player.close();
 
-		currentSong = null;
 		player = null;
 	}
 
@@ -132,16 +126,12 @@ public class PlayerThread extends Thread {
 	public void setRealGain() {
 		GameSettings settings = Minecraft.getMinecraft().gameSettings;
 		float musicGain = settings.getSoundLevel(SoundCategory.MUSIC) * settings.getSoundLevel(SoundCategory.MASTER);
-		float realGain = MIN_GAIN + (MAX_GAIN - MIN_GAIN) * musicGain;
-		
+		float realGain = Math.max(MIN_GAIN, gain * (2F - musicGain)); 
 		this.realGain = realGain;
 		if(player != null) {
 			AudioDevice device = player.getAudioDevice();
-			if(device != null && device instanceof JavaSoundAudioDevice) {
-				try {
-					((JavaSoundAudioDevice) device).setGain(realGain);
-				} catch(IllegalArgumentException e) { } // If you can't fix the bug just put a catch around it
-			}
+			if(device != null && device instanceof JavaSoundAudioDevice)
+				((JavaSoundAudioDevice) device).setGain(realGain);
 		}
 		
 		if(musicGain == 0)

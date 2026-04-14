@@ -1,8 +1,7 @@
 package vazkii.ambience;
 
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.common.eventhandler.Event;
+import cpw.mods.fml.common.eventhandler.Event;
 
 // top lel name
 // works as an api, feel free to include in your mods to add custom events
@@ -12,25 +11,27 @@ public class AmbienceEventEvent extends Event {
 	public String event = "";
 	
 	public World world;
-	public BlockPos pos;
+	public int x, y, z;
 	
-	AmbienceEventEvent(World world, BlockPos pos) {
+	AmbienceEventEvent(World world, int x, int y, int z) {
 		this.world = world;
-		this.pos = pos;
+		this.x = x;
+		this.y = y;
+		this.z = z;
 	}
 	
 	public static class Pre extends AmbienceEventEvent {
 
-		public Pre(World world, BlockPos pos) {
-			super(world, pos);
+		public Pre(World world, int x, int y, int z) {
+			super(world, x, y, z);
 		} 
 	}
 	
 	
 	public static class Post extends AmbienceEventEvent {
 
-		public Post(World world, BlockPos pos) {
-			super(world, pos);
+		public Post(World world, int x, int y, int z) {
+			super(world, x, y, z);
 		}
 		
 	}

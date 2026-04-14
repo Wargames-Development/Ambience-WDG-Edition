@@ -2,31 +2,39 @@ package vazkii.ambience;
 
 import java.util.HashMap;
 import java.util.Map;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.biome.Biome;
+
+import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraftforge.common.BiomeDictionary;
-import net.minecraftforge.common.BiomeDictionary.Type;
 
 public class BiomeMapper {
-	
-	private static Map<String, Biome> biomeMap = null;
+
+	private static Map<String, BiomeGenBase> biomeMap = null;
+	private static Map<String, BiomeDictionary.Type> typeMap = null;
 	
 	public static void applyMappings() {
-		biomeMap = new HashMap<String, Biome>();
-		for(ResourceLocation biomeResource : Biome.REGISTRY.getKeys()) {
-			Biome biome = Biome.REGISTRY.getObject(biomeResource);
-			biomeMap.put(biome.getBiomeName(), biome);
+		biomeMap = new HashMap<String, BiomeGenBase>();
+		typeMap = new HashMap<String, BiomeDictionary.Type>();
+		
+		for(BiomeGenBase biome : BiomeGenBase.getBiomeGenArray()) {
+			if(biome == null)
+				continue;
+			biomeMap.put(biome.biomeName, biome);
 		}
+		
+		for(BiomeDictionary.Type t : BiomeDictionary.Type.class.getEnumConstants())
+			typeMap.put(t.name(), t);
 	}
 	
-	public static Biome getBiome(String s) {
+	public static BiomeGenBase getBiome(String s) {
 		if(biomeMap == null)
 			applyMappings();
 		return biomeMap.get(s);
 	}
 	
-	public static Type getBiomeType(String s) {
-		return BiomeDictionary.Type.getType(s);
+	public static BiomeDictionary.Type getBiomeType(String s) {
+		if(typeMap == null)
+			applyMappings();
+		return typeMap.get(s);
 	}
 	
 }
