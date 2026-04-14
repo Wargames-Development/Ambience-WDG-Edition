@@ -1,29 +1,50 @@
-*.mp3
+# Gradle
+.gradle/
+build/
+
+# IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Eclipse
+.metadata/
+.project
+.classpath
+.settings/
+
+# VSCode
+.vscode/
+
+# OS files
+.DS_Store
 Thumbs.db
 
-## gradle
-/.gradle
-/build
+# Logs
+logs/
+*.log
 
-## ForgeGradle
-/run
+# Forge / run dirs
+run/
+eclipse/
 
-## eclipse
-/.settings
-/.metadata
-/.classpath
-/.project
-/bin
+# Compiled classes
+*.class
 
-## intellij
-/out
-/.idea
-/atlassian-ide-plugin.xml
+# JARs (keep built outputs ignored unless you explicitly want them)
+build/libs/*.jar
 
-## Private Stuffs
-/private.properties
+# Local config overrides
+*.local.properties
 
-## Jars
-*.jar
-!/gradle/wrapper/gradle-wrapper.jar
-.DS_Store
+# Generated resources
+bin/
+
+# Mac
+.AppleDouble
+.LSOverride
+
+# Windows
+Desktop.ini

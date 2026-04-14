@@ -1,49 +1,57 @@
+import java.util.Properties
+
 buildscript {
     repositories {
+        maven { url = 'https://maven.minecraftforge.net/' }
         mavenCentral()
-        maven {
-            name = "forge"
-            url = "http://files.minecraftforge.net/maven"
-        }
-        maven {
-            name = "sonatype"
-            url = "https://oss.sonatype.org/content/repositories/snapshots/"
-        }
     }
     dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:1.2-SNAPSHOT'
-    }
-}
-
-repositories {
-    maven {
-        name = "chickenbones"
-        url = "http://chickenbones.net/maven/"
+        classpath('com.anatawa12.forge:ForgeGradle:1.2-1.0.+') { changing = true }
     }
 }
 
 apply plugin: 'forge'
-//apply plugin: 'curseforge'
 
-ext.configFile = file('build.properties')
+group = "com.wdg"
+archivesBaseName = jarBaseName
 
-ext.config = parseConfig(configFile)
-//ext.priv = parseConfig(file('private.properties'))
+def mcVersion = "1.7.10"
+def forgeVersion = "${mcVersion}-10.13.4.1614-1.7.10"
 
-version = "${config.version}-${config.build_number}"
-group = "vazkii.runetune" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-archivesBaseName = config.mod_name
+def gradlePropsFile = file("gradle.properties")
+def persistedProps = new Properties()
+gradlePropsFile.withInputStream { persistedProps.load(it) }
+
+def currentBuildNumber = (persistedProps.getProperty("modBuildNumber") ?: "0").toInteger()
+
+def requestedTasks = gradle.startParameter.taskNames.collect { it.toLowerCase() }
+def shouldAutoIncrement = requestedTasks.isEmpty() || requestedTasks.any { taskName ->
+    taskName == "build" ||
+            taskName.endsWith(":build") ||
+            taskName == "assemble" ||
+            taskName.endsWith(":assemble") ||
+            taskName == "reobf" ||
+            taskName.endsWith(":reobf") ||
+            taskName == "jar" ||
+            taskName.endsWith(":jar")
+}
+
+def effectiveBuildNumber = shouldAutoIncrement ? currentBuildNumber + 1 : currentBuildNumber
+def baseVersion = "${modMainVersion}.${modSubVersion}.${modPatchVersion}_X${effectiveBuildNumber}"
+def branchSuffix = (project.hasProperty("branch") && project.branch) ? "-${project.branch}" : ""
+def modVersionString = "${baseVersion}${branchSuffix}"
+
+version = modVersionString
+
+compileJava.options.encoding = 'UTF-8'
+sourceCompatibility = targetCompatibility = '1.8'
 
 minecraft {
-    version = "${config.mc_version}-${config.forge_version}"
-    assetDir = "eclipse/assets"
+    version = forgeVersion
+    runDir = "eclipse"
 
-    //This, does the token replacement.
-    //Though, I reccomend this to be replaced with a token such as @VERSION@
-    replace 'GRADLE:BUILD', config.build_number
-    replace 'GRADLE:VERSION', config.version
-
-    replaceIn 'LibMisc.java' //I may have missed another file, though I can only find it in here.
+    replace "@VERSION@", modVersionString
+    replaceIn "vazkii/ambience/Ambience.java"
 }
 
 repositories {
@@ -51,155 +59,55 @@ repositories {
 }
 
 dependencies {
-
 }
 
 processResources {
-    // replace stuff in mcmod.info, nothing else
+    inputs.property "version", modVersionString
+    inputs.property "mcversion", mcVersion
+    inputs.property "modid", modBaseName
+    inputs.property "name", modDisplayName
+
     from(sourceSets.main.resources.srcDirs) {
         include 'mcmod.info'
-
-        // replace version and mcversion
-        expand 'version': project.version, 'mcversion': project.minecraft.version
+        expand([
+                version  : modVersionString,
+                mcversion: mcVersion,
+                modid    : modBaseName,
+                name     : modDisplayName
+        ])
     }
 
-    // copy everything else, thats not the mcmod.info
     from(sourceSets.main.resources.srcDirs) {
         exclude 'mcmod.info', '**/psd/**'
     }
 }
 
-/**
- * These, go outside of the processResources {}* Though, this was added with the NEI intergation commit (8bf4680)
- */
-task deobfJar(type: Jar) {
-    from(sourceSets.main.output)
-	archiveName = "${baseName} ${version}-deobf.${extension}"
-}
-
-artifacts {
-    archives deobfJar
-}
-/**
- * Increments the buildnumber in your config file, and saves it
- */
-task incrementBuildNumber(dependsOn: 'reobf') << {
-    config.build_number = (config.build_number.toString().toInteger()) + 1
-    configFile.withWriter {
-        config.toProperties().store(it, "")
-    }
-
-    //file('web/versions.ini').append("\n${version}=${minecraft.version}")
-    //file("${config.dir_repo}/version/${minecraft.version}.txt").write("${version}")
-}
-
-// I have no idea what I'm doing
-task wtfGradle2(type: Copy) {
-    from(jar.destinationDir)
-    into file("${config.dir_output}/wtf")
-}
-
-// Seriously, I'm desperate to make this work
-task wtfGradle1(type: Delete) {
-	dependsOn "wtfGradle2"
-    delete "${config.dir_output}/wtf/${deobfJar.archiveName}"
-}
-
-task output(type: Copy) {
-	dependsOn "wtfGradle1"
-	from(jar.destinationDir)
-    into file(config.dir_output)
-}
-
-task outputDeobf(type: Copy) {
-	dependsOn "output"
-	from(config.dir_output) {
-		include deobfJar.archiveName
-	}
-    into file("${config.dir_output}/deobf")
-}
-
-/*task forgecraft(type: Copy) {
-	dependsOn "outputDeobf"
-	from "${config.dir_output}/wtf"
-	into file(config.dir_forgecraft)
-}*/
-
-task sort(type: Delete) {
-	dependsOn /*"forgecraft"*/ "outputDeobf"
-	delete "${config.dir_output}/${deobfJar.archiveName}", "${config.dir_output}/wtf"
-}
-
-/**
- * This is the upload task from the build.xml
- */
-/*task upload(dependsOn: 'reobf') << {
-    ftp(action: 'mkdir', remotedir: '/files')
-    ftp(action: 'send', remotedir: '/files') {
-        fileset(file: jar.archivePath)
-    }
-	
-	 ftp(action: 'send', remotedir: '/files/deobf') {
-        fileset(file: deobfJar.archivePath)
-    }
-
-    ftp(action: 'send', remotedir: '.') {
-        fileset(file: 'web/changelog.txt')
-        fileset(file: 'web/versions.ini')
-    }
-}*/
-
-/**
- * This is deply_web task
- */
-task deployWeb << {
-    ftp(action: 'send', remotedir: '.') {
-        fileset(dir: 'web') //everything from the web directory
-    }
-}
-
-//simple function that we can use
-//Got this from: http://svn.codehaus.org/gradle/website/build.gradle
-/*void ftp(Map args, Closure antFileset = {}) {
-    ant {
-        taskdef(name: 'ftp',
-                classname: 'org.apache.tools.ant.taskdefs.optional.net.FTP',
-                classpath: configurations.ftpAntTask.asPath)
-        Map ftpArgs = args + [ //some default options
-                               verbose : 'yes',
-                               server  : priv.host,
-                               userid  : priv.user,
-                               password: priv.pass
-        ]
-        delegate.ftp(ftpArgs) {
-            antFileset.delegate = delegate
-            antFileset()
-        }
-    }
-}*/
-
-def parseConfig(File config) {
-    config.withReader {
-        def prop = new Properties()
-        prop.load(it)
-        return (new ConfigSlurper().parse(prop))
-    }
-}
-
 jar {
-    //rename the default output, for some better... sanity with scipts
-    archiveName = "${baseName} ${version}.${extension}"
+    def fullVersion = "${modMainVersion}.${modSubVersion}.${modPatchVersion}_X${effectiveBuildNumber}"
+    def suffix = (project.hasProperty("branch") && project.branch) ? "-${project.branch}" : ""
+    baseName = "${jarBaseName}-${fullVersion}${suffix}"
+    version = null
+    destinationDir = file("build/libs")
 }
 
-/*curse {
-    apiKey = priv.cfkey
-    projectId = "225643"
-    changelog = """
-		See http://vazkii.us/mod/Botania/changelog.php#${version}
-    """
-    releaseType = "release"
-}*/
+task persistBuildNumber {
+    onlyIf { shouldAutoIncrement }
 
-//change this so it only increments on upload
-//upload.dependsOn tasks.incrementBuildNumber
-defaultTasks 'clean', 'build', 'sort', 'incrementBuildNumber'/*, 'forgecraft', 'curse', 'upload'*/ //remove clean if you want faster builds, this will stop rare inconsistancies. 
+    doLast {
+        def updatedProps = new Properties()
+        gradlePropsFile.withInputStream { updatedProps.load(it) }
+        updatedProps.setProperty("modBuildNumber", String.valueOf(effectiveBuildNumber))
+
+        gradlePropsFile.withOutputStream { out ->
+            updatedProps.store(out, null)
+        }
+
+        println "${jarBaseName} build number updated: X${currentBuildNumber} -> X${effectiveBuildNumber}"
+    }
+}
+
+if (shouldAutoIncrement) {
+    tasks.matching { it.name in ["build", "assemble", "reobf", "jar"] }.all { task ->
+        task.dependsOn persistBuildNumber
+    }
+}

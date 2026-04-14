@@ -23,8 +23,7 @@ public class Ambience {
 
 	public static final String MOD_ID = "Ambience";
 	public static final String MOD_NAME = MOD_ID;
-	public static final String BUILD = "GRADLE:BUILD";
-	public static final String VERSION = "GRADLE:VERSION-" + BUILD;
+	public static final String VERSION = "@VERSION@";
 	public static final String DEPENDENCIES = "";
 
 	private static final int WAIT_DURATION = 40;
